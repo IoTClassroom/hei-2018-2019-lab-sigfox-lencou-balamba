@@ -2,13 +2,13 @@
  * Author: Louis Moreau: https://github.com/luisomoreau
  * Date: 2017/03/03
  * Description:
- * This arduino example will show you how to send a Sigfox message 
+ * This arduino example will show you how to send a Sigfox message
  * using the wisol module and the MKR1000 (https://yadom.fr/carte-breakout-sfm10r1.html)
 */
 
 
 //Set to 0 if you don't need to see the messages in the console
-#define DEBUG 1 
+#define DEBUG 1
 
 //Message buffer
 uint8_t msg[12];
@@ -20,10 +20,10 @@ void setup() {
   if(DEBUG){
     Serial.begin(9600);
   }
-  
+
   // open Wisol communication
   Serial1.begin(9600);
-  delay(100);
+  delay(5000);
   getID();
   delay(100);
   getPAC();
@@ -31,31 +31,16 @@ void setup() {
 
 // the loop function runs over and over again forever
 void loop() {
-  int light = analogRead(A0);
-  int humidity = analogRead(A1);
-  Serial.print("light: ");
-  Serial.println(light);
-  Serial.print("Humidity: ");
-  Serial.println(humidity);
-
-  int lightPercentage = map(light, 0, 1023, 0, 100);
-  int humidityPercentage = map(humidity, 0, 1023, 0, 100);
-  Serial.print("light percentage: ");
-  Serial.print(lightPercentage);
-  Serial.println(" % ");
-  Serial.print("Humidity percentage: ");
-  Serial.print(humidityPercentage);
-  Serial.println(" % ");
-  
-  msg[0]=lightPercentage;
-  msg[1]=humidityPercentage;
-
-  sendMessage(msg, 2);
-
+  msg[0]=0xC0;
+  msg[1]=0xFF;
+  msg[2]=0xEE;
+  Serial.println("Envoie...");
+  sendMessage(msg, 3);
+  Serial.println("Envoyé !");
   // In the ETSI zone, due to the reglementation, an object cannot emit more than 1% of the time hourly
   // So, 1 hour = 3600 sec
   // 1% of 3600 sec = 36 sec
-  // A Sigfox message takes 6 seconds to emit 
+  // A Sigfox message takes 6 seconds to emit
   // 36 sec / 6 sec = 6 messages per hours -> 1 every 10 minutes
   delay(10*60*1000);
 }
@@ -71,23 +56,23 @@ void blink(){
 String getID(){
   String id = "";
   char output;
-  
+
   Serial1.print("AT$I=10\r");
   while (!Serial1.available()){
      blink();
   }
-  
+
   while(Serial1.available()){
     output = Serial1.read();
     id += output;
     delay(10);
   }
-  
+
   if(DEBUG){
     Serial.println("Sigfox Device ID: ");
     Serial.println(id);
   }
-  
+
   return id;
 }
 
@@ -96,23 +81,23 @@ String getID(){
 String getPAC(){
   String pac = "";
   char output;
-  
+
   Serial1.print("AT$I=11\r");
   while (!Serial1.available()){
      blink();
   }
-  
+
   while(Serial1.available()){
     output = Serial1.read();
-    pac += output;
+    pac += "X";
     delay(10);
   }
-  
+
   if(DEBUG){
     Serial.println("PAC number: ");
     Serial.println(pac);
   }
-  
+
   return pac;
 }
 
@@ -125,18 +110,13 @@ void sendMessage(uint8_t msg[], int size){
 
   Serial1.print("AT$SF=");
   for(int i= 0;i<size;i++){
-    if (msg[i] < 16){
-      Serial1.write('0');
-    }
     Serial1.print(String(msg[i], HEX));
     if(DEBUG){
-      if (msg[i] < 16){
-        Serial.write('0');
-      }
-      Serial.print(String(msg[i], HEX));
+      Serial.print("Byte:");
+      Serial.println(msg[i], HEX);
     }
   }
-  
+
   Serial1.print("\r");
 
   while (!Serial1.available()){
@@ -153,4 +133,3 @@ void sendMessage(uint8_t msg[], int size){
     Serial.println(status);
   }
 }
-
